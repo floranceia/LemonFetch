@@ -317,7 +317,7 @@
             }
 
             statusDiv.className = 'status-message info';
-            statusDiv.innerHTML = `Başarılı! <a href="${data.download_url}" download="lemonfetch-video.mp4" target="_blank" style="color: var(--accent-yellow); font-weight: bold;">Videoyu Buradan İndir 📥</a>`;
+            statusDiv.innerHTML = `Başarılı! <a href="${data.download_url}" download="lemonfetch.mp4" style="color: var(--accent-yellow); font-weight: bold;">Videoyu Buradan İndir 📥</a>`;
         } catch (error) {
             statusDiv.className = 'status-message error';
             statusDiv.innerText = error.message;
