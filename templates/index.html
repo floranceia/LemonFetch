@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sarı Video İndirici</title>
+    <title>LemonFetch</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍋</text></svg>">
     <style>
         :root {
             --bg-color: #121212;
@@ -13,6 +14,19 @@
             --text-color: #ffffff;
             --text-muted: #a0a0a0;
             --error-color: #e74c3c;
+            --input-bg: #2a2a2a;
+            --input-border: #333;
+            --notice-bg: #252525;
+        }
+
+        .light-mode {
+            --bg-color: #f4f4f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --text-muted: #666666;
+            --input-bg: #f9f9f9;
+            --input-border: #e0e0e0;
+            --notice-bg: #f0f0f5;
         }
 
         * {
@@ -20,16 +34,38 @@
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             padding: 20px;
+            position: relative;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--input-border);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .theme-toggle:hover {
+            opacity: 0.8;
         }
 
         .container {
@@ -38,8 +74,9 @@
             padding: 30px;
             width: 100%;
             max-width: 480px;
-            box-shadow: 0 8px 24px rgba(241, 196, 15, 0.15);
-            border: 1px solid rgba(241, 196, 15, 0.2);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--input-border);
+            margin-bottom: 25px;
         }
 
         .header {
@@ -49,7 +86,7 @@
 
         .header h1 {
             color: var(--accent-yellow);
-            font-size: 1.8rem;
+            font-size: 2rem;
             margin-bottom: 8px;
         }
 
@@ -69,9 +106,9 @@
             width: 100%;
             padding: 14px;
             border-radius: 8px;
-            border: 2px solid #333;
-            background-color: #2a2a2a;
-            color: #fff;
+            border: 2px solid var(--input-border);
+            background-color: var(--input-bg);
+            color: var(--text-color);
             font-size: 0.95rem;
             outline: none;
             transition: border-color 0.3s;
@@ -81,7 +118,7 @@
             border-color: var(--accent-yellow);
         }
 
-        button {
+        button.action-btn {
             background-color: var(--accent-yellow);
             color: #000;
             border: none;
@@ -93,19 +130,20 @@
             transition: background-color 0.2s, transform 0.1s;
         }
 
-        button:hover {
+        button.action-btn:hover {
             background-color: var(--accent-hover);
         }
 
-        button:active {
+        button.action-btn:active {
             transform: scale(0.98);
         }
 
         .status-message {
             margin-top: 15px;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             text-align: center;
             min-height: 20px;
+            word-break: break-all;
         }
 
         .status-message.error {
@@ -116,37 +154,137 @@
             color: var(--accent-yellow);
         }
 
-        .footer {
-            margin-top: 20px;
+        .lemon-card {
+            background-color: var(--notice-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 12px;
+            padding: 18px;
+            width: 100%;
+            max-width: 480px;
             text-align: center;
-            font-size: 0.75rem;
+            font-size: 0.85rem;
+        }
+
+        .lemon-card h3 {
+            color: var(--accent-yellow);
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .lemon-card p {
             color: var(--text-muted);
-            border-top: 1px solid #2a2a2a;
-            padding-top: 15px;
+            margin-bottom: 14px;
+            line-height: 1.4;
+        }
+
+        .lemon-btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .lemon-btn {
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .lemon-btn.accept {
+            background-color: var(--accent-yellow);
+            color: #000;
+        }
+
+        .lemon-btn.decline {
+            background-color: transparent;
+            border: 1px solid var(--input-border);
+            color: var(--text-muted);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            padding: 24px;
+            border-radius: 12px;
+            max-width: 360px;
+            text-align: center;
+            border: 1px solid var(--accent-yellow);
+        }
+
+        .modal-content p {
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            line-height: 1.5;
         }
     </style>
 </head>
 <body>
 
+<button class="theme-toggle" onclick="toggleTheme()">Modu Değiştir</button>
+
 <div class="container">
     <div class="header">
-        <h1>Video İndirici</h1>
+        <h1>LemonFetch</h1>
         <p>TikTok & Instagram İçerik İndirme</p>
     </div>
 
     <div class="input-group">
         <input type="text" id="videoUrl" placeholder="Video bağlantısını yapıştırın...">
-        <button onclick="processDownload()">Videoyu Getir</button>
+        <button class="action-btn" onclick="processDownload()">İndir</button>
     </div>
 
     <div id="status" class="status-message"></div>
+</div>
 
-    <div class="footer">
+<div class="lemon-card" id="lemonCard">
+    <h3>Limonlarımızdan ister misin? 🍋</h3>
+    <p>Bu doğrulama, kişisel verilerinizi toplamak amacıyla <b>kesinlikle kullanılmaz</b>. Sadece platformlara istek atarken bot olmadığınızı kanıtlamak ve sorunsuz indirme yapmanızı sağlamak içindir.</p>
+    <div class="lemon-btn-group">
+        <button class="lemon-btn accept" onclick="acceptLemons()">Limonları Kabul Et 🍋</button>
+        <button class="lemon-btn decline" onclick="declineLemons()">İstemiyorum ❌</button>
+    </div>
+</div>
+
+<div class="modal" id="warningModal">
+    <div class="modal-content">
+        <p>Limonlarımızı almadığınız için platformlar sizi bot sanabilir ve video indirirken sıkıntı yaşayabilirsiniz! 🍋😔<br><br>İstediğiniz zaman kabul edebilirsiniz.</p>
+        <button class="lemon-btn accept" onclick="closeModal()">Anladım</button>
     </div>
 </div>
 
 <script>
-    function processDownload() {
+    let lemonsAccepted = false;
+
+    function toggleTheme() {
+        document.body.classList.toggle('light-mode');
+    }
+
+    function acceptLemons() {
+        lemonsAccepted = true;
+        document.getElementById('lemonCard').style.display = 'none';
+        alert("Limonlar kabul edildi! Artık kesintisiz video indirebilirsiniz. 🍋");
+    }
+
+    function declineLemons() {
+        document.getElementById('warningModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('warningModal').style.display = 'none';
+    }
+
+    async function processDownload() {
         const urlInput = document.getElementById('videoUrl').value.trim();
         const statusDiv = document.getElementById('status');
 
@@ -159,9 +297,31 @@
             return;
         }
 
-        // İşlem başarılı mesajı
         statusDiv.className = 'status-message info';
-        statusDiv.innerText = 'Bağlantı işleniyor...';
+        statusDiv.innerText = 'Limonlar toplanıyor, video hazırlanıyor... 🍋';
+
+        try {
+            const response = await fetch('/api/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    url: urlInput,
+                    lemon_mode: lemonsAccepted 
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Video getirilemedi.');
+            }
+
+            statusDiv.className = 'status-message info';
+            statusDiv.innerHTML = `Başarılı! <a href="${data.download_url}" target="_blank" style="color: var(--accent-yellow); font-weight: bold;">Videoyu Buradan İndir 📥</a>`;
+        } catch (error) {
+            statusDiv.className = 'status-message error';
+            statusDiv.innerText = error.message;
+        }
     }
 </script>
 </body>
