@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 import yt_dlp
+import requests
 
 app = Flask(__name__)
 
@@ -21,7 +22,7 @@ def process_video():
         'no_warnings': True,
         'socket_timeout': 10,
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept-Language': 'en-US,en;q=0.9',
         }
     }
@@ -29,25 +30,37 @@ def process_video():
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-            
             video_url = info.get('url')
             
             if not video_url and 'entries' in info:
                 video_url = info['entries'][0].get('url')
 
-            if not video_url:
-                return jsonify({'error': 'Video adresi alınamadı, lütfen bağlantıyı kontrol edin.'}), 400
+            if video_url:
+                return jsonify({
+                    'success': True,
+                    'title': info.get('title', 'LemonFetch Video'),
+                    'download_url': video_url
+                })
+    except Exception:
+        pass
 
-            return jsonify({
-                'success': True,
-                'title': info.get('title', 'LemonFetch Video'),
-                'download_url': video_url
-            })
-    except Exception as e:
-        error_msg = str(e)
-        if "bot" in error_msg.lower() or "429" in error_msg:
-            return jsonify({'error': 'Platform şu an istekleri engelliyor. Lütfen limonları kabul edip tekrar deneyin! 🍋'}), 429
-        return jsonify({'error': f'Video işlenemedi: {error_msg}'}), 500
+    try:
+        api_url = f"https://apis.davidcyriltech.my.id/download?url={url}"
+        response = requests.get(api_url, timeout=10)
+        res_data = response.json()
+        
+        if res_data.get("status") == 200:
+            download_link = res_data.get("result", {}).get("video") or res_data.get("result", {}).get("download_url")
+            if download_link:
+                return jsonify({
+                    'success': True,
+                    'title': 'LemonFetch Video',
+                    'download_url': download_link
+                })
+    except Exception:
+        pass
+
+    return jsonify({'error': 'Platform şu an istekleri engelliyor. Limonları kabul edip birazdan tekrar deneyebilirsin! 🍋'}), 429
 
 if __name__ == '__main__':
     app.run(debug=True)
