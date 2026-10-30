@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify, render_template
-import yt_dlp
 import requests
 
 app = Flask(__name__)
@@ -16,44 +15,31 @@ def process_video():
     if not url:
         return jsonify({'error': 'Lütfen geçerli bir URL girin.'}), 400
 
-    # Doğrudan çalışan video bağlantısını API üzerinden çekiyoruz
+    # 1. Yedek API (David Cyril Tech)
     try:
         api_url = f"https://apis.davidcyriltech.my.id/download?url={url}"
-        response = requests.get(api_url, timeout=10)
+        response = requests.get(api_url, timeout=8)
         res_data = response.json()
-        
         if res_data.get("status") == 200:
             download_link = res_data.get("result", {}).get("video") or res_data.get("result", {}).get("download_url")
             if download_link:
-                return jsonify({
-                    'success': True,
-                    'title': 'LemonFetch Video',
-                    'download_url': download_link
-                })
+                return jsonify({'success': True, 'title': 'LemonFetch Video', 'download_url': download_link})
     except Exception:
         pass
 
-    # Yedek olarak yt-dlp denemesi
-    ydl_opts = {
-        'format': 'best',
-        'quiet': True,
-        'no_warnings': True,
-    }
-
+    # 2. Yedek API (TikWM Alternatif)
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            video_url = info.get('url')
-            if video_url:
-                return jsonify({
-                    'success': True,
-                    'title': info.get('title', 'LemonFetch Video'),
-                    'download_url': video_url
-                })
+        tikwm_url = f"https://www.tikwm.com/api/?url={url}"
+        response = requests.get(tikwm_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=8)
+        res_data = response.json()
+        if res_data.get("code") == 0:
+            download_link = res_data.get("data", {}).get("play")
+            if download_link:
+                return jsonify({'success': True, 'title': 'LemonFetch Video', 'download_url': download_link})
     except Exception:
         pass
 
-    return jsonify({'error': 'Video indirilemedi. Platform şu an engelliyor olabilir.'}), 429
+    return jsonify({'error': 'TikTok/Instagram şu an sunucu IP adresini engelliyor. Lütfen daha sonra tekrar deneyin.'}), 429
 
 if __name__ == '__main__':
     app.run(debug=True)
