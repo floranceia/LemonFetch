@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, redirect
+from flask import Flask, request, jsonify, render_template, Response
 import yt_dlp
 import requests
 
@@ -27,40 +27,51 @@ def process_video():
         }
     }
 
+    video_url = None
+
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             video_url = info.get('url')
-            
             if not video_url and 'entries' in info:
                 video_url = info['entries'][0].get('url')
-
-            if video_url:
-                return jsonify({
-                    'success': True,
-                    'title': info.get('title', 'LemonFetch Video'),
-                    'download_url': video_url
-                })
     except Exception:
         pass
 
+    if not video_url:
+        try:
+            api_url = f"https://apis.davidcyriltech.my.id/download?url={url}"
+            response = requests.get(api_url, timeout=10)
+            res_data = response.json()
+            if res_data.get("status") == 200:
+                video_url = res_data.get("result", {}).get("video") or res_data.get("result", {}).get("download_url")
+        except Exception:
+            pass
+
+    if not video_url:
+        return jsonify({'error': 'Platform şu an istekleri engelliyor. Limonları kabul edip birazdan tekrar deneyebilirsin! 🍋'}), 429
+
+    # 403 hatasını aşmak için videoyu kendi sunucumuz üzerinden proxy ediyoruz
+    proxy_url = f"/proxy-download?url={requests.utils.quote(video_url)}"
+
+    return jsonify({
+        'success': True,
+        'title': 'LemonFetch Video',
+        'download_url': proxy_url
+    })
+
+@app.route('/proxy-download')
+def proxy_download():
+    target_url = request.args.get('url')
+    if not target_url:
+        return "Geçersiz bağlantı", 400
+    
     try:
-        api_url = f"https://apis.davidcyriltech.my.id/download?url={url}"
-        response = requests.get(api_url, timeout=10)
-        res_data = response.json()
-        
-        if res_data.get("status") == 200:
-            download_link = res_data.get("result", {}).get("video") or res_data.get("result", {}).get("download_url")
-            if download_link:
-                return jsonify({
-                    'success': True,
-                    'title': 'LemonFetch Video',
-                    'download_url': download_link
-                })
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        req = requests.get(target_url, headers=headers, stream=True, timeout=15)
+        return Response(req.iter_content(chunk_size=1024), content_type=req.headers.get('content-type', 'video/mp4'))
     except Exception:
-        pass
-
-    return jsonify({'error': 'Platform şu an istekleri engelliyor. Limonları kabul edip birazdan tekrar deneyebilirsin! 🍋'}), 429
+        return "Video indirilemedi", 500
 
 if __name__ == '__main__':
     app.run(debug=True)
