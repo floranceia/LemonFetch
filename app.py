@@ -23,7 +23,6 @@ def get_video():
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-            # Doğrudan video bağlantısını (CDN URL) yakalıyoruz
             video_url = info.get('url') or (info.get('formats') and info.get('formats')[-1].get('url'))
             
             if not video_url:
