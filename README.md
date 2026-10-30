@@ -1,2 +1,1 @@
-# LemonFetch
-Minimalist media fetcher designed for personal workflows. Grab watermark-free content from Instagram and TikTok effortlessly.
+LemonFetch, TikTok ve Instagram'da gezinirken "bunu kesin kaydetmeliyim" dediğin videoları reklamlarla boğuşmadan tek tıkla indirebilmen için hazırladığım tatlı bir proje!! içinde gözünü yormasın diye gece/gündüz modu da var, arkada gizli saklı veri toplama gibi işler de dönmüyor. Kendi bilgisayarında çalıştırmak istersen de terminale pip install -r requirements.txt yazıp kütüphaneleri kurduktan sonra python app.py demen yeterli, gerisi tamamen sende hayatımmm! 🍋✨
