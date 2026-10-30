@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, Response
+from flask import Flask, request, jsonify, render_template
 import yt_dlp
 import requests
 
@@ -16,62 +16,44 @@ def process_video():
     if not url:
         return jsonify({'error': 'Lütfen geçerli bir URL girin.'}), 400
 
+    # Doğrudan çalışan video bağlantısını API üzerinden çekiyoruz
+    try:
+        api_url = f"https://apis.davidcyriltech.my.id/download?url={url}"
+        response = requests.get(api_url, timeout=10)
+        res_data = response.json()
+        
+        if res_data.get("status") == 200:
+            download_link = res_data.get("result", {}).get("video") or res_data.get("result", {}).get("download_url")
+            if download_link:
+                return jsonify({
+                    'success': True,
+                    'title': 'LemonFetch Video',
+                    'download_url': download_link
+                })
+    except Exception:
+        pass
+
+    # Yedek olarak yt-dlp denemesi
     ydl_opts = {
         'format': 'best',
         'quiet': True,
         'no_warnings': True,
-        'socket_timeout': 10,
-        'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept-Language': 'en-US,en;q=0.9',
-        }
     }
-
-    video_url = None
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             video_url = info.get('url')
-            if not video_url and 'entries' in info:
-                video_url = info['entries'][0].get('url')
+            if video_url:
+                return jsonify({
+                    'success': True,
+                    'title': info.get('title', 'LemonFetch Video'),
+                    'download_url': video_url
+                })
     except Exception:
         pass
 
-    if not video_url:
-        try:
-            api_url = f"https://apis.davidcyriltech.my.id/download?url={url}"
-            response = requests.get(api_url, timeout=10)
-            res_data = response.json()
-            if res_data.get("status") == 200:
-                video_url = res_data.get("result", {}).get("video") or res_data.get("result", {}).get("download_url")
-        except Exception:
-            pass
-
-    if not video_url:
-        return jsonify({'error': 'Platform şu an istekleri engelliyor. Limonları kabul edip birazdan tekrar deneyebilirsin! 🍋'}), 429
-
-    # 403 hatasını aşmak için videoyu kendi sunucumuz üzerinden proxy ediyoruz
-    proxy_url = f"/proxy-download?url={requests.utils.quote(video_url)}"
-
-    return jsonify({
-        'success': True,
-        'title': 'LemonFetch Video',
-        'download_url': proxy_url
-    })
-
-@app.route('/proxy-download')
-def proxy_download():
-    target_url = request.args.get('url')
-    if not target_url:
-        return "Geçersiz bağlantı", 400
-    
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        req = requests.get(target_url, headers=headers, stream=True, timeout=15)
-        return Response(req.iter_content(chunk_size=1024), content_type=req.headers.get('content-type', 'video/mp4'))
-    except Exception:
-        return "Video indirilemedi", 500
+    return jsonify({'error': 'Video indirilemedi. Platform şu an engelliyor olabilir.'}), 429
 
 if __name__ == '__main__':
     app.run(debug=True)
